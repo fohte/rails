@@ -114,11 +114,14 @@ HEADER
 
           case pk
           when String
-            tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
             pkcol = columns.detect { |c| c.name == pk }
             pkcolspec = column_spec_for_primary_key(pkcol)
-            if pkcolspec.present?
-              dump_pk_columns = pkcolspec
+            if pkcolspec.key?(:comment)
+              dump_pk_columns = pkcolspec.except(:id).merge(primary_key: true)
+              tbl.print ", id: false"
+            else
+              tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
+              tbl.print ", #{format_colspec(pkcolspec)}"
             end
           when Array
             tbl.print ", primary_key: #{pk.inspect}"
@@ -138,7 +141,6 @@ HEADER
             raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" unless @connection.valid_type?(column.type)
             type, colspec = if column.name == pk
               next if dump_pk_columns.empty?
-              dump_pk_columns.delete(:id)
               [column.type, dump_pk_columns]
             else
               column_spec(column)
