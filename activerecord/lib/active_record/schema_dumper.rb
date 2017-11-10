@@ -108,6 +108,7 @@ HEADER
 
           # first dump primary key column
           pk = @connection.primary_key(table)
+          dump_pk_columns = {}
 
           tbl.print "  create_table #{remove_prefix_and_suffix(table).inspect}"
 
@@ -117,7 +118,7 @@ HEADER
             pkcol = columns.detect { |c| c.name == pk }
             pkcolspec = column_spec_for_primary_key(pkcol)
             if pkcolspec.present?
-              tbl.print ", #{format_colspec(pkcolspec)}"
+              dump_pk_columns = pkcolspec
             end
           when Array
             tbl.print ", primary_key: #{pk.inspect}"
@@ -135,8 +136,13 @@ HEADER
           # then dump all non-primary key columns
           columns.each do |column|
             raise StandardError, "Unknown type '#{column.sql_type}' for column '#{column.name}'" unless @connection.valid_type?(column.type)
-            next if column.name == pk
-            type, colspec = column_spec(column)
+            type, colspec = if column.name == pk
+              next if dump_pk_columns.empty?
+              dump_pk_columns.delete(:id)
+              [column.type, dump_pk_columns]
+            else
+              column_spec(column)
+            end
             tbl.print "    t.#{type} #{column.name.inspect}"
             tbl.print ", #{format_colspec(colspec)}" if colspec.present?
             tbl.puts
