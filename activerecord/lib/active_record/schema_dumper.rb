@@ -119,7 +119,7 @@ HEADER
             if pkcolspec.key?(:comment)
               dump_pk_columns = pkcolspec.except(:id).merge(primary_key: true)
               tbl.print ", id: false"
-            else
+            elsif pkcolspec.present?
               tbl.print ", primary_key: #{pk.inspect}" unless pk == "id"
               tbl.print ", #{format_colspec(pkcolspec)}"
             end
